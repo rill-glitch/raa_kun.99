@@ -10,7 +10,7 @@ const CONFIG = {
   avatar: "./profil.jpg",
   startISO: "2026-10-19T19:30:00+07:00",
   watchUrl: "https://www.youtube.com/@raakun8952",
-  discordUrl: "https://discord.gg/GANTI-INVITE",
+  discordUrl: "https://discord.gg/dSz6UkJns",
 
   schedule: [
     { d: "Senin", t: "19:00", n: "🎉 Stream perdana!" },
@@ -35,7 +35,7 @@ const CONFIG = {
     { i: "🎵", n: "TikTok", d: "@Asep Kopling", u: "https://www.tiktok.com/@useless._13" },
     { i: "📸", n: "Instagram", d: "@Raa Kun", u: "https://www.instagram.com/raa_kun" },
     { i: "▶️", n: "YouTube", d: "Raa Kun", u: "https://www.youtube.com/@raakun8952" },
-    { i: "💬", n: "Discord", d: "Server komunitas", u: "https://discord.gg/GANTI-INVITE" },
+    { i: "💬", n: "Discord", d: "Server komunitas", u: "https://discord.gg/dSz6UkJns" },
   ],
 };
 
