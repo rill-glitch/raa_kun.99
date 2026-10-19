@@ -8,7 +8,7 @@ const CONFIG = {
   tagline: "Streamer Magang",
   bio: "Mulai live mulai hari Senin! Datang, ngobrol, dan seru-seruan bareng di chat.",
   avatar: "./profil.jpg",
-  startISO: "2026-10-19T19:30:00+07:00",
+  startISO: "2026-10-19T21:30:00+07:00",
   watchUrl: "https://www.youtube.com/@raakun8952",
   discordUrl: "https://discord.gg/dSz6UkJns",
 
