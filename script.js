@@ -8,15 +8,15 @@ const CONFIG = {
   tagline: "Streamer Magang",
   bio: "Mulai live mulai hari Senin! Datang, ngobrol, dan seru-seruan bareng di chat.",
   avatar: "./profil.jpg",
-  startISO: "2026-10-19T21:30:00+07:00",
   watchUrl: "https://www.youtube.com/@raakun8952",
   discordUrl: "https://discord.gg/dSz6UkJns",
 
+  // Jadwal awal (dipakai kalau belum pernah disimpan dari panel admin)
   schedule: [
-    { d: "Senin", t: "19:00", n: "🎉 Stream perdana!" },
-    { d: "Rabu", t: "19:00", n: "Live santai bareng chat" },
-    { d: "Jumat", t: "20:00", n: "Live malam Jumat" },
-    { d: "Sabtu", t: "19:00", n: "Live weekend" },
+    { date: "2026-10-19", time: "19:00", note: "🎉 Stream perdana!" },
+    { date: "2026-10-21", time: "19:00", note: "Live santai bareng chat" },
+    { date: "2026-10-23", time: "20:00", note: "Live malam Jumat" },
+    { date: "2026-10-24", time: "19:00", note: "Live weekend" },
   ],
 
   donate: [
@@ -136,23 +136,76 @@ $("yr").textContent = new Date().getFullYear();
 
 $("dcBtn").href = C.discordUrl;
 
+if ($("dcLogo") && typeof SOCIAL_ICONS !== "undefined") {
+  $("dcLogo").innerHTML = `<svg viewBox="0 0 24 24" aria-label="Discord"><path d="${SOCIAL_ICONS.discord}"/></svg>`;
+}
+
 $("perks").innerHTML = C.perks
   .map((perk) => `<li>${perk}</li>`)
   .join("");
 
 /* ===== JADWAL STREAM ===== */
 
-$("sch").innerHTML = C.schedule
-  .map(
-    (item) => `
-      <div class="card">
-        <span class="d">${item.d}</span>
-        <span class="t">${item.t} WIB</span>
-        <span class="n">${item.n}</span>
-      </div>
-    `
-  )
-  .join("");
+const API = "/api";
+const CACHE_KEY = "raakun_schedule_v1";
+const TOKEN_KEY = "raakun_admin_token";
+
+const esc = (v) =>
+  String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const store = {
+  get(key) { try { return localStorage.getItem(key); } catch { return null; } },
+  set(key, val) { try { localStorage.setItem(key, val); } catch {} },
+  del(key) { try { localStorage.removeItem(key); } catch {} },
+};
+
+const when = (item) => new Date(`${item.date}T${item.time}:00+07:00`).getTime();
+
+const fmtDay = (item) =>
+  new Date(when(item)).toLocaleDateString("id-ID", {
+    weekday: "long", day: "numeric", month: "short", timeZone: "Asia/Jakarta",
+  });
+
+let schedule = (() => {
+  try {
+    const cached = JSON.parse(store.get(CACHE_KEY));
+    if (Array.isArray(cached)) return cached;
+  } catch {}
+  return C.schedule;
+})();
+
+function renderSchedule() {
+  const now = Date.now();
+  const sorted = [...schedule].sort((a, b) => when(a) - when(b));
+
+  $("sch").innerHTML = sorted.length
+    ? sorted.map((item) => `
+        <div class="card${when(item) < now - 2 * 3600e3 ? " past" : ""}">
+          <span class="d">${fmtDay(item)}</span>
+          <span class="t">${esc(item.time)} WIB</span>
+          <span class="n">${esc(item.note)}</span>
+        </div>`).join("")
+    : `<div class="card"><span class="n">Belum ada jadwal. Pantengin Discord ya!</span></div>`;
+}
+
+function applySchedule(list, { cache = true } = {}) {
+  schedule = list;
+  if (cache) store.set(CACHE_KEY, JSON.stringify(list));
+  renderSchedule();
+  setNextStream();
+  tick();
+}
+
+async function fetchSchedule() {
+  try {
+    const res = await fetch(API + "/schedule", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data.schedule)) applySchedule(data.schedule);
+  } catch {
+    /* offline: tetap pakai jadwal terakhir */
+  }
+}
 
 /* ===== DONASI DAN SOSIAL ===== */
 
@@ -175,26 +228,39 @@ const renderCards = (items) =>
 $("don").innerHTML = renderCards(C.donate);
 $("soc").innerHTML = renderCards(C.social);
 
-/* ===== COUNTDOWN ===== */
+/* ===== COUNTDOWN (ke stream berikutnya) ===== */
 
-const start = new Date(C.startISO).getTime();
+let start = null;
 
-$("startTxt").textContent =
-  "Stream perdana: " +
-  new Date(start)
-    .toLocaleString("id-ID", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Asia/Jakarta",
-    })
-    .replace(".", ":") +
-  " WIB";
+function setNextStream() {
+  const limit = Date.now() - 2 * 3600e3; // tetap dianggap "live" sampai 2 jam
+  const next = [...schedule].sort((a, b) => when(a) - when(b)).find((i) => when(i) > limit);
+
+  if (!next) {
+    start = null;
+    $("startTxt").textContent = "Belum ada jadwal stream berikutnya.";
+    return;
+  }
+
+  start = when(next);
+  $("startTxt").textContent =
+    "Stream berikutnya: " +
+    new Date(start)
+      .toLocaleString("id-ID", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric",
+        hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta",
+      })
+      .replace(".", ":") +
+    " WIB" + (next.note ? " · " + next.note : "");
+}
 
 function tick() {
+  if (start === null) {
+    $("cd").innerHTML = "";
+    $("pill").textContent = "Belum ada jadwal stream";
+    return;
+  }
+
   const diff = start - Date.now();
 
   if (diff <= 0) {
@@ -204,12 +270,13 @@ function tick() {
         <small>Waktunya bergabung!</small>
       </div>
     `;
-    $("pill").textContent = "Waktu stream perdana telah tiba";
+    $("pill").textContent = "Stream sedang berlangsung";
     return;
   }
 
-  const seconds = Math.floor(diff / 1000);
+  $("pill").textContent = "Stream berikutnya segera dimulai";
 
+  const seconds = Math.floor(diff / 1000);
   const parts = [
     [Math.floor(seconds / 86400), "Hari"],
     [Math.floor(seconds / 3600) % 24, "Jam"],
@@ -218,19 +285,20 @@ function tick() {
   ];
 
   $("cd").innerHTML = parts
-    .map(
-      ([number, label]) => `
+    .map(([number, label]) => `
         <div>
           <b>${String(number).padStart(2, "0")}</b>
           <small>${label}</small>
-        </div>
-      `
-    )
+        </div>`)
     .join("");
 }
 
+renderSchedule();
+setNextStream();
 tick();
 setInterval(tick, 1000);
+fetchSchedule();
+setInterval(fetchSchedule, 60000); // member otomatis lihat jadwal terbaru
 
 /* ===== BACKGROUND PARTIKEL ===== */
 
@@ -602,4 +670,154 @@ if (bgMusic && musicToggle && musicVolume && musicName) {
   });
 
   audio.addEventListener("ended", resetSpectrum);
+})();
+
+/* ==========================================
+   PANEL ADMIN (edit jadwal)
+========================================== */
+
+(() => {
+  const overlay = document.createElement("div");
+  overlay.className = "adm";
+  overlay.hidden = true;
+  overlay.innerHTML = `
+    <div class="adm-box" role="dialog" aria-modal="true" aria-label="Panel admin">
+      <button type="button" class="adm-x" id="admX" aria-label="Tutup">✕</button>
+
+      <form id="admLogin" autocomplete="on">
+        <h2>Login Admin</h2>
+        <p class="sub">Khusus Raa Kun untuk mengubah jadwal stream.</p>
+        <input id="admUser" name="username" placeholder="Username" autocomplete="username" required />
+        <input id="admPass" name="password" type="password" placeholder="Password" autocomplete="current-password" required />
+        <p class="adm-err" id="admErr1"></p>
+        <button class="btn" type="submit">Masuk</button>
+      </form>
+
+      <div id="admEdit" hidden>
+        <h2>Edit Jadwal</h2>
+        <p class="sub">Semua jam dalam WIB. Klik Simpan agar member melihat perubahannya.</p>
+        <div class="adm-rows" id="admRows"></div>
+        <p class="adm-err" id="admErr2"></p>
+        <div class="cta" style="justify-content:flex-start">
+          <button class="btn o" type="button" id="admAdd">+ Tambah jadwal</button>
+          <button class="btn" type="button" id="admSave">💾 Simpan</button>
+          <button class="btn o" type="button" id="admOut">Keluar</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const q = (id) => overlay.querySelector("#" + id);
+  const rows = q("admRows");
+
+  const rowHTML = (it = {}) => `
+    <div class="adm-row">
+      <input type="date" value="${esc(it.date || "")}" aria-label="Tanggal" />
+      <input type="time" value="${esc(it.time || "")}" aria-label="Jam (WIB)" />
+      <input type="text" maxlength="120" value="${esc(it.note || "")}" placeholder="Keterangan" aria-label="Keterangan" />
+      <button type="button" class="adm-del" aria-label="Hapus" title="Hapus">🗑</button>
+    </div>`;
+
+  function fillRows() {
+    const sorted = [...schedule].sort((a, b) => when(a) - when(b));
+    rows.innerHTML = sorted.map(rowHTML).join("");
+  }
+
+  function collect() {
+    return [...rows.querySelectorAll(".adm-row")].map((r) => {
+      const [d, t, n] = r.querySelectorAll("input");
+      return { date: d.value, time: t.value, note: n.value.trim() };
+    });
+  }
+
+  function show(editing) {
+    q("admLogin").hidden = editing;
+    q("admEdit").hidden = !editing;
+    q("admErr1").textContent = q("admErr2").textContent = "";
+    if (editing) fillRows();
+  }
+
+  function open() {
+    overlay.hidden = false;
+    show(!!store.get(TOKEN_KEY));
+  }
+
+  function close() {
+    overlay.hidden = true;
+  }
+
+  function logout() {
+    store.del(TOKEN_KEY);
+    show(false);
+  }
+
+  $("adminLink")?.addEventListener("click", (e) => { e.preventDefault(); open(); });
+  q("admX").onclick = close;
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !overlay.hidden) close(); });
+
+  q("admLogin").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = q("admErr1");
+    err.textContent = "Memeriksa...";
+    try {
+      const res = await fetch(API + "/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: q("admUser").value, password: q("admPass").value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { err.textContent = data.error || "Login gagal."; return; }
+      store.set(TOKEN_KEY, data.token);
+      q("admPass").value = "";
+      show(true);
+    } catch {
+      err.textContent = "Tidak bisa terhubung ke server.";
+    }
+  });
+
+  q("admAdd").onclick = () => {
+    rows.insertAdjacentHTML("beforeend", rowHTML({ time: "19:00" }));
+    rows.lastElementChild.querySelector("input").focus();
+  };
+
+  rows.addEventListener("click", (e) => {
+    const del = e.target.closest(".adm-del");
+    if (del) del.closest(".adm-row").remove();
+  });
+
+  q("admOut").onclick = logout;
+
+  q("admSave").onclick = async () => {
+    const err = q("admErr2");
+    const list = collect();
+
+    if (list.some((i) => !i.date || !i.time)) {
+      err.textContent = "Tanggal dan jam wajib diisi di setiap baris.";
+      return;
+    }
+
+    err.textContent = "Menyimpan...";
+    try {
+      const res = await fetch(API + "/schedule", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer " + store.get(TOKEN_KEY),
+        },
+        body: JSON.stringify({ schedule: list }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 401) { logout(); q("admErr1").textContent = data.error || "Silakan login lagi."; return; }
+      if (!res.ok) { err.textContent = data.error || "Gagal menyimpan."; return; }
+
+      applySchedule(data.schedule);
+      err.textContent = "";
+      close();
+      toast("Jadwal tersimpan ✓");
+    } catch {
+      err.textContent = "Tidak bisa terhubung ke server.";
+    }
+  };
 })();
