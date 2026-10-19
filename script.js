@@ -20,9 +20,9 @@ const CONFIG = {
   ],
 
   donate: [
-    { i: "🎁", n: "Saweria", d: "QRIS, e-wallet, transfer", u: "https://saweria.co/raakun" },
+    { i: "🎁", n: "Saweria", d: "QRIS, e-wallet, transfer", u: "https://saweria.co/#NOT" },
     { i: "☕", n: "SociaBuzz", d: "Dukungan kreator", u: "https://sociabuzz.com/raa_kun" },
-    { i: "💙", n: "Ko-fi", d: "Dukungan internasional", u: "https://ko-fi.com/raakun" },
+    { i: "💙", n: "Ko-fi", d: "Dukungan internasional", u: "https://ko-fi.com/#NOT" },
   ],
 
   perks: [
