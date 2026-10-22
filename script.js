@@ -108,7 +108,7 @@ waLink.className = "tab wa-channel";
 waLink.href = C.whatsappChannelUrl;
 waLink.target = "_blank";
 waLink.rel = "noopener noreferrer";
-waLink.textContent = "Saluran WA";
+waLink.textContent = "◉ Saluran WA";
 waLink.setAttribute("aria-label", "Buka Saluran WhatsApp Raa Kun");
 $("tabs").appendChild(waLink);
 
