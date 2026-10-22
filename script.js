@@ -10,6 +10,8 @@ const CONFIG = {
   avatar: "./profil.jpg",
   watchUrl: "https://www.youtube.com/@raakun8952",
   discordUrl: "https://discord.gg/dSz6UkJns",
+  // Ganti dengan tautan Saluran WhatsApp Raa Kun yang asli
+  whatsappChannelUrl: "https://whatsapp.com/channel/0029VbD6clJ35fM4DDLPdJ0f",
 
   // Jadwal awal (dipakai kalau belum pernah disimpan dari panel admin)
   schedule: [
@@ -99,6 +101,16 @@ $("tabs").innerHTML = VIEWS.map(
   ([view, label], index) =>
     `<button class="tab${index === 0 ? " on" : ""}" data-v="${view}">${label}</button>`
 ).join("");
+
+// Tautan Saluran WhatsApp di navbar (membuka tab baru)
+const waLink = document.createElement("a");
+waLink.className = "tab wa-channel";
+waLink.href = C.whatsappChannelUrl;
+waLink.target = "_blank";
+waLink.rel = "noopener noreferrer";
+waLink.textContent = "Saluran WA";
+waLink.setAttribute("aria-label", "Buka Saluran WhatsApp Raa Kun");
+$("tabs").appendChild(waLink);
 
 /* ===== IDENTITAS ===== */
 
