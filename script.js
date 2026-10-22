@@ -11,7 +11,7 @@ const CONFIG = {
   watchUrl: "https://www.youtube.com/@raakun8952",
   discordUrl: "https://discord.gg/dSz6UkJns",
   // Ganti dengan tautan Saluran WhatsApp Raa Kun yang asli
-  whatsappChannelUrl: "https://whatsapp.com/channel/REPLACE_WITH_YOUR_CHANNEL_ID",
+  whatsappChannelUrl: "https://www.whatsapp.com/channel/0029VbD6clJ35fM4DDLPdJ0f",
 
   // Jadwal awal (dipakai kalau belum pernah disimpan dari panel admin)
   schedule: [
