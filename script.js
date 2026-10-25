@@ -1,4 +1,3 @@
-
 /* ==========================================
    RAA KUN - PROFILE + BACKGROUND MUSIC
 ========================================== */
@@ -310,7 +309,7 @@ function tick() {
           <b>${String(number).padStart(2, "0")}</b>
           <small>${label}</small>
         </div>`)
-    .join("");
+    : "";
 }
 
 renderSchedule();
@@ -318,7 +317,7 @@ setNextStream();
 tick();
 setInterval(tick, 1000);
 fetchSchedule();
-setInterval(fetchSchedule, 60000); // member otomatis lihat jadwal terbaru
+setInterval(fetchSchedule, 60000);
 
 /* ===== BACKGROUND PARTIKEL ===== */
 
@@ -380,20 +379,36 @@ const musicToggle = $("musicToggle");
 const musicVolume = $("musicVolume");
 const musicName = $("musicName");
 
+let currentTrackIndex = 0;
+
 if (bgMusic && musicToggle && musicVolume && musicName) {
   bgMusic.volume = Number(musicVolume.value);
 
-  const track = playlist[0];
+  // Fungsi untuk memuat trek audio sesuai indeks
+  function loadTrack(index) {
+    if (!playlist.length) {
+      musicName.textContent = "Lagu belum tersedia";
+      musicToggle.disabled = true;
+      return;
+    }
 
-  if (track) {
+    // Mengatur indeks agar berputar dalam lingkaran (looping playlist)
+    if (index < 0) {
+      currentTrackIndex = playlist.length - 1;
+    } else if (index >= playlist.length) {
+      currentTrackIndex = 0;
+    } else {
+      currentTrackIndex = index;
+    }
+
+    const track = playlist[currentTrackIndex];
     musicName.textContent = track.name;
     bgMusic.src = track.src;
-    bgMusic.loop = true;
     bgMusic.preload = "auto";
-  } else {
-    musicName.textContent = "Lagu belum tersedia";
-    musicToggle.disabled = true;
   }
+
+  // Muat lagu pertama di awal
+  loadTrack(currentTrackIndex);
 
   function updateMusicButton(playing) {
     musicToggle.textContent = playing ? "Ⅱ" : "▶";
@@ -408,7 +423,7 @@ if (bgMusic && musicToggle && musicVolume && musicName) {
       } catch (error) {
         updateMusicButton(false);
         console.error("Gagal memutar musik:", error);
-        toast("Periksa file sound.mp3.");
+        toast("Gagal memutar audio.");
       }
     } else {
       bgMusic.pause();
@@ -417,6 +432,16 @@ if (bgMusic && musicToggle && musicVolume && musicName) {
 
   musicVolume.addEventListener("input", () => {
     bgMusic.volume = Number(musicVolume.value);
+  });
+
+  // Otomatis pindah ke lagu berikutnya setelah lagu selesai
+  bgMusic.addEventListener("ended", async () => {
+    loadTrack(currentTrackIndex + 1);
+    try {
+      await bgMusic.play();
+    } catch (error) {
+      console.error("Gagal memutar lagu berikutnya:", error);
+    }
   });
 
   bgMusic.addEventListener("play", () => updateMusicButton(true));
