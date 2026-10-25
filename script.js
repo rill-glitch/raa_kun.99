@@ -43,8 +43,16 @@ const CONFIG = {
 
 const playlist = [
   {
-    name: "Raa Kun's Theme",
+    name: "coffee time cute",
     src: "./sound.mp3",
+  },
+  {
+    name: "pretty please cute",
+    src: "./sound2.mp3",
+  },
+  {
+    name: "chiikawa cute",
+    src: "./sound3.mp3",
   },
 ];
 
